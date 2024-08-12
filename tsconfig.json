@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "module": "ES6",
+    "target": "es2015",
+    "outDir": "build_artifacts",
+    "rootDir": "./src",
+    "allowJs": true,
+    "sourceMap": true
+  },
+  "include": [
+    "**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**"
+  ]
+}

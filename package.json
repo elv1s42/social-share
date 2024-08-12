@@ -1,0 +1,26 @@
+{
+  "name": "social-share",
+  "version": "0.0.1",
+  "description": "",
+  "main": "socialShare.js",
+  "scripts": {
+    "build": "rimraf build_artifacts && rimraf socialShare.min.js && tsc && rollup -c && rimraf build_artifacts && npm run minify && npm run minify-dev",
+    "dev": "nodemon --watch src --ext ts --exec npm run build",
+    "minify": "uglifyjs socialShare.js -c -o socialShare.min.js",
+    "minify-dev": "uglifyjs socialShare.js -c -o dev/socialShare.min.js",
+    "server": "nodemon dev/server.js",
+    "start": "concurrently \"npm run dev\" \"npm run server\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.0",
+    "rimraf": "^5.0.5",
+    "uglify-js": "^3.17.4"
+  },
+  "dependencies": {
+  }
+}
