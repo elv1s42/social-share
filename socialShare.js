@@ -1,6 +1,67 @@
 (function () {
     'use strict';
 
+    function getValue(elem, attr) {
+        let val = elem.getAttribute(`data-${attr}`);
+        if (val && attr === 'hashtag' && !val.startsWith('#')) {
+            val = `#${val}`;
+        }
+        return val !== null ? val : '';
+    }
+
+    function getConfiguration(e) {
+        const sharerKey = getValue(e, 'share-to').toLowerCase();
+        const sharerConfigFn = SharerConfigs[sharerKey];
+        return sharerConfigFn(e);
+    }
+    function createSharerConfig(e, shareUrl, params) {
+        return {
+            shareUrl,
+            params,
+            width: parseInt(e.getAttribute('data-width') || '600'),
+            height: parseInt(e.getAttribute('data-height') || '480'),
+            isLink: e.getAttribute('data-link') === 'true',
+            isBlank: e.getAttribute('data-blank') === 'true',
+        };
+    }
+    const SharerConfigs = {
+        [SharerKey.Facebook]: (e) => createSharerConfig(e, 'https://www.facebook.com/sharer/sharer.php', {
+            u: getValue(e, 'url'),
+            hashtag: getValue(e, 'hashtag'),
+            quote: getValue(e, 'text'),
+        }),
+        [SharerKey.LinkedIn]: (e) => createSharerConfig(e, 'https://www.linkedin.com/shareArticle', {
+            url: getValue(e, 'url'),
+        }),
+        [SharerKey.X]: (e) => createSharerConfig(e, 'https://x.com/intent/tweet', {
+            text: getValue(e, 'text'),
+            url: getValue(e, 'url'),
+            hashtags: getValue(e, 'hashtags'),
+            via: getValue(e, 'via'),
+            related: getValue(e, 'related'),
+            in_reply_to: getValue(e, 'in_reply_to'),
+        }),
+        [SharerKey.Threads]: (e) => createSharerConfig(e, 'https://threads.net/intent/post', {
+            text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+        }),
+        [SharerKey.Email]: (e) => createSharerConfig(e, 'mailto:' + getValue(e, 'to'), {
+            subject: getValue(e, 'title'),
+            body: getValue(e, 'text') + '\n' + getValue(e, 'url'),
+        }),
+        [SharerKey.WhatsApp]: (e) => createSharerConfig(e, getValue(e, 'web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/', {
+            phone: getValue(e, 'to'),
+            text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+        }),
+        [SharerKey.Telegram]: (e) => createSharerConfig(e, 'https://t.me/share', {
+            text: getValue(e, 'text'),
+            url: getValue(e, 'url'),
+        }),
+        [SharerKey.Reddit]: (e) => createSharerConfig(e, 'https://www.reddit.com/submit', {
+            url: getValue(e, 'url'),
+            title: getValue(e, 'text'),
+        }),
+    };
+
     (function (window, document) {
         class socialShare {
             constructor(elem) {
@@ -17,85 +78,12 @@
                 const sharer = new socialShare(target);
                 sharer.share();
             }
-            getValue(attr) {
-                let val = this.elem.getAttribute(`data-${attr}`);
-                if (val && attr === 'hashtag' && !val.startsWith('#')) {
-                    val = `#${val}`;
-                }
-                return val !== null ? val : '';
-            }
             share() {
-                const sharer = this.getValue('share-to').toLowerCase();
-                const sharers = {
-                    fb: {
-                        shareUrl: 'https://www.facebook.com/sharer/sharer.php',
-                        params: {
-                            u: this.getValue('url'),
-                            hashtag: this.getValue('hashtag'),
-                            quote: this.getValue('text'),
-                        },
-                    },
-                    li: {
-                        shareUrl: 'https://www.linkedin.com/shareArticle',
-                        params: {
-                            url: this.getValue('url'),
-                        },
-                    },
-                    x: {
-                        shareUrl: 'https://x.com/intent/tweet',
-                        params: {
-                            text: this.getValue('text'),
-                            url: this.getValue('url'),
-                            hashtags: this.getValue('hashtags'),
-                            via: this.getValue('via'),
-                            related: this.getValue('related'),
-                            in_reply_to: this.getValue('in_reply_to'),
-                        },
-                    },
-                    th: {
-                        shareUrl: 'https://threads.net/intent/post',
-                        params: {
-                            text: this.getValue('text') + ' ' + this.getValue('url'),
-                        },
-                    },
-                    em: {
-                        shareUrl: 'mailto:' + this.getValue('to'),
-                        params: {
-                            subject: this.getValue('title'),
-                            body: this.getValue('text') + '\n' + this.getValue('url'),
-                        },
-                    },
-                    wa: {
-                        shareUrl: this.getValue('web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/',
-                        params: {
-                            phone: this.getValue('to'),
-                            text: this.getValue('text') + ' ' + this.getValue('url'),
-                        },
-                    },
-                    tg: {
-                        shareUrl: 'https://t.me/share',
-                        params: {
-                            text: this.getValue('text'),
-                            url: this.getValue('url'),
-                        },
-                    },
-                    re: {
-                        shareUrl: 'https://www.reddit.com/submit',
-                        params: {
-                            url: this.getValue('url'),
-                            title: this.getValue('text')
-                        },
-                    },
-                };
-                const s = sharers[sharer];
-                if (s !== undefined) {
-                    s.width = this.getValue('width');
-                    s.height = this.getValue('height');
-                    this.urlSharer(s);
-                }
+                const sharerConfig = getConfiguration(this.elem);
+                this.openShareWindow(sharerConfig);
             }
-            urlSharer(sharer) {
-                const p = sharer.params || {};
+            openShareWindow(config) {
+                const p = config.params || {};
                 const keys = Object.keys(p);
                 let str = keys.length > 0 ? '?' : '';
                 keys.forEach((key, index) => {
@@ -106,24 +94,20 @@
                         str += `${key}=${encodeURIComponent(String(p[key]))}`;
                     }
                 });
-                sharer.shareUrl += str;
-                const isLink = this.getValue('link') === 'true';
-                const isBlank = this.getValue('blank') === 'true';
-                if (isLink) {
-                    if (isBlank) {
-                        window.open(sharer.shareUrl, '_blank');
+                config.shareUrl += str;
+                if (config.isLink) {
+                    if (config.isBlank) {
+                        window.open(config.shareUrl, '_blank');
                     }
                     else {
-                        window.location.href = sharer.shareUrl;
+                        window.location.href = config.shareUrl;
                     }
                 }
                 else {
-                    const popWidth = parseInt(sharer.width || '600');
-                    const popHeight = parseInt(sharer.height || '480');
-                    const left = window.innerWidth / 2 - popWidth / 2 + window.screenX;
-                    const top = window.innerHeight / 2 - popHeight / 2 + window.screenY;
-                    const popParams = `scrollbars=no, width=${popWidth}, height=${popHeight}, top=${top}, left=${left}`;
-                    const newWindow = window.open(sharer.shareUrl, '', popParams);
+                    const left = window.innerWidth / 2 - config.width / 2 + window.screenX;
+                    const top = window.innerHeight / 2 - config.height / 2 + window.screenY;
+                    const popParams = `scrollbars=no, width=${config.width}, height=${config.height}, top=${top}, left=${left}`;
+                    const newWindow = window.open(config.shareUrl, '', popParams);
                     if (window.focus && newWindow) {
                         newWindow.focus();
                     }
