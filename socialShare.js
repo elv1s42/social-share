@@ -1,6 +1,69 @@
 (function () {
     'use strict';
 
+    class Sharer {
+        constructor(config) {
+            this.config = config;
+        }
+        openShareWindow() {
+            const params = this.config.params || {};
+            const keys = Object.keys(params);
+            let str = keys.length > 0 ? '?' : '';
+            keys.forEach((key, index) => {
+                if (index > 0) {
+                    str += '&';
+                }
+                if (params[key]) {
+                    str += `${key}=${encodeURIComponent(String(params[key]))}`;
+                }
+            });
+            this.config.baseShareUrl += str;
+            const url = this.config.getFullShareUrl();
+            if (this.config.isLink) {
+                if (this.config.isBlank) {
+                    window.open(url, '_blank');
+                }
+                else {
+                    window.location.href = url;
+                }
+            }
+            else {
+                const left = window.innerWidth / 2 - this.config.width / 2 + window.screenX;
+                const top = window.innerHeight / 2 - this.config.height / 2 + window.screenY;
+                const popParams = `scrollbars=no, width=${this.config.width}, height=${this.config.height}, top=${top}, left=${left}`;
+                const newWindow = window.open(url, '', popParams);
+                if (window.focus && newWindow) {
+                    newWindow.focus();
+                }
+            }
+        }
+    }
+
+    class SharerConfig {
+        constructor(shareUrl, params, width, height, isLink, isBlank) {
+            this.baseShareUrl = shareUrl;
+            this.params = params;
+            this.width = width;
+            this.height = height;
+            this.isLink = isLink;
+            this.isBlank = isBlank;
+        }
+        getFullShareUrl() {
+            const p = this.params || {};
+            const keys = Object.keys(p);
+            let str = keys.length > 0 ? '?' : '';
+            keys.forEach((key, index) => {
+                if (index > 0) {
+                    str += '&';
+                }
+                if (p[key]) {
+                    str += `${key}=${encodeURIComponent(String(p[key]))}`;
+                }
+            });
+            return this.baseShareUrl + str;
+        }
+    }
+
     function getValue(elem, attr) {
         let val = elem.getAttribute(`data-${attr}`);
         if (val && attr === 'hashtag' && !val.startsWith('#')) {
@@ -15,14 +78,7 @@
         return sharerConfigFn(e);
     }
     function createSharerConfig(e, shareUrl, params) {
-        return {
-            shareUrl,
-            params,
-            width: parseInt(e.getAttribute('data-width') || '600'),
-            height: parseInt(e.getAttribute('data-height') || '480'),
-            isLink: e.getAttribute('data-link') === 'true',
-            isBlank: e.getAttribute('data-blank') === 'true',
-        };
+        return new SharerConfig(shareUrl, params, parseInt(e.getAttribute('data-width') || '600'), parseInt(e.getAttribute('data-height') || '480'), e.getAttribute('data-link') === 'true', e.getAttribute('data-blank') === 'true');
     }
     const SharerConfigs = {
         [SharerKey.Facebook]: (e) => createSharerConfig(e, 'https://www.facebook.com/sharer/sharer.php', {
@@ -64,54 +120,17 @@
 
     (function (window, document) {
         class socialShare {
-            constructor(elem) {
-                this.elem = elem;
-            }
             static init() {
-                const elems = document.querySelectorAll('[data-share-to]');
-                elems.forEach(elem => {
+                const elements = document.querySelectorAll('[data-share-to]');
+                elements.forEach(elem => {
                     elem.addEventListener('click', socialShare.add);
                 });
             }
             static add(event) {
                 const target = event.currentTarget;
-                const sharer = new socialShare(target);
-                sharer.share();
-            }
-            share() {
-                const sharerConfig = getConfiguration(this.elem);
-                this.openShareWindow(sharerConfig);
-            }
-            openShareWindow(config) {
-                const p = config.params || {};
-                const keys = Object.keys(p);
-                let str = keys.length > 0 ? '?' : '';
-                keys.forEach((key, index) => {
-                    if (index > 0) {
-                        str += '&';
-                    }
-                    if (p[key]) {
-                        str += `${key}=${encodeURIComponent(String(p[key]))}`;
-                    }
-                });
-                config.shareUrl += str;
-                if (config.isLink) {
-                    if (config.isBlank) {
-                        window.open(config.shareUrl, '_blank');
-                    }
-                    else {
-                        window.location.href = config.shareUrl;
-                    }
-                }
-                else {
-                    const left = window.innerWidth / 2 - config.width / 2 + window.screenX;
-                    const top = window.innerHeight / 2 - config.height / 2 + window.screenY;
-                    const popParams = `scrollbars=no, width=${config.width}, height=${config.height}, top=${top}, left=${left}`;
-                    const newWindow = window.open(config.shareUrl, '', popParams);
-                    if (window.focus && newWindow) {
-                        newWindow.focus();
-                    }
-                }
+                const sharerConfig = getConfiguration(target);
+                const sharer = new Sharer(sharerConfig);
+                sharer.openShareWindow();
             }
         }
         if (document.readyState === 'complete' || document.readyState !== 'loading') {

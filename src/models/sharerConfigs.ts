@@ -12,14 +12,14 @@ function createSharerConfig(
   shareUrl: string,
   params: Record<string, string>
 ): SharerConfig {
-  return {
+  return new SharerConfig(
     shareUrl,
     params,
-    width: parseInt(e.getAttribute('data-width') || '600'),
-    height: parseInt(e.getAttribute('data-height') || '480'),
-    isLink: e.getAttribute('data-link') === 'true',
-    isBlank: e.getAttribute('data-blank') === 'true',
-  };
+    parseInt(e.getAttribute('data-width') || '600'),
+    parseInt(e.getAttribute('data-height') || '480'),
+    e.getAttribute('data-link') === 'true',
+    e.getAttribute('data-blank') === 'true',
+  );
 }
 
 export const SharerConfigs: Record<string, (e: Element) => SharerConfig> = {
