@@ -1,3 +1,5 @@
+import { SharerKey } from "./sharerKey";
+
 export class SharerConfig {
   baseShareUrl: string;
   params: Record<string, string | boolean | number>;
@@ -5,16 +7,19 @@ export class SharerConfig {
   height: number;
   isLink: boolean;
   isBlank: boolean;
+  key: SharerKey;
 
   constructor(
+    key: SharerKey,
     shareUrl: string,
     params: Record<string, string | boolean | number>,
     width: number,
     height: number,
     isLink: boolean,
     isBlank: boolean) {
+    this.key = key;
     this.baseShareUrl = shareUrl;
-    this.params = params;
+    this.params = params || {};
     this.width = width;
     this.height = height;
     this.isLink = isLink;
@@ -22,19 +27,17 @@ export class SharerConfig {
   }
 
   getFullShareUrl(): string {
-    const p = this.params || {};
-    const keys = Object.keys(p);
+    const keys = Object.keys(this.params);
     let str = keys.length > 0 ? '?' : '';
-
-    keys.forEach((key, index) => {
-      if (index > 0) {
-        str += '&';
-      }
-      if (p[key]) {
-        str += `${key}=${encodeURIComponent(String(p[key]))}`;
+    let ind = 0;
+    keys.forEach((key) => {
+      const val = encodeURIComponent(String(this.params[key]))
+      if (val !== "") {
+        str += `${ind > 0 ? '&' : ''}${key}=${val}`;
+        ind++;
       }
     });
-
-    return this.baseShareUrl + str;
+    const url = this.baseShareUrl + str;
+    return url;
   }
 }

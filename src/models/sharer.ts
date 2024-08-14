@@ -8,21 +8,6 @@ export class Sharer {
   }
 
   openShareWindow(): void {
-    const params = this.config.params || {};
-    const keys = Object.keys(params);
-    let str = keys.length > 0 ? '?' : '';
-
-    keys.forEach((key, index) => {
-      if (index > 0) {
-        str += '&';
-      }
-      if (params[key]) {
-        str += `${key}=${encodeURIComponent(String(params[key]))}`;
-      }
-    });
-
-    this.config.baseShareUrl += str;
-
     const url = this.config.getFullShareUrl()
 
     if (this.config.isLink) {

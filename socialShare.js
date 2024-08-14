@@ -6,18 +6,6 @@
             this.config = config;
         }
         openShareWindow() {
-            const params = this.config.params || {};
-            const keys = Object.keys(params);
-            let str = keys.length > 0 ? '?' : '';
-            keys.forEach((key, index) => {
-                if (index > 0) {
-                    str += '&';
-                }
-                if (params[key]) {
-                    str += `${key}=${encodeURIComponent(String(params[key]))}`;
-                }
-            });
-            this.config.baseShareUrl += str;
             const url = this.config.getFullShareUrl();
             if (this.config.isLink) {
                 if (this.config.isBlank) {
@@ -40,29 +28,42 @@
     }
 
     class SharerConfig {
-        constructor(shareUrl, params, width, height, isLink, isBlank) {
+        constructor(key, shareUrl, params, width, height, isLink, isBlank) {
+            this.key = key;
             this.baseShareUrl = shareUrl;
-            this.params = params;
+            this.params = params || {};
             this.width = width;
             this.height = height;
             this.isLink = isLink;
             this.isBlank = isBlank;
         }
         getFullShareUrl() {
-            const p = this.params || {};
-            const keys = Object.keys(p);
+            const keys = Object.keys(this.params);
             let str = keys.length > 0 ? '?' : '';
-            keys.forEach((key, index) => {
-                if (index > 0) {
-                    str += '&';
-                }
-                if (p[key]) {
-                    str += `${key}=${encodeURIComponent(String(p[key]))}`;
+            let ind = 0;
+            keys.forEach((key) => {
+                const val = encodeURIComponent(String(this.params[key]));
+                if (val !== "") {
+                    str += `${ind > 0 ? '&' : ''}${key}=${val}`;
+                    ind++;
                 }
             });
-            return this.baseShareUrl + str;
+            const url = this.baseShareUrl + str;
+            return url;
         }
     }
+
+    var SharerKey;
+    (function (SharerKey) {
+        SharerKey["Facebook"] = "fb";
+        SharerKey["LinkedIn"] = "li";
+        SharerKey["X"] = "x";
+        SharerKey["Threads"] = "th";
+        SharerKey["Email"] = "em";
+        SharerKey["WhatsApp"] = "wa";
+        SharerKey["Telegram"] = "tg";
+        SharerKey["Reddit"] = "re";
+    })(SharerKey || (SharerKey = {}));
 
     function getValue(elem, attr) {
         let val = elem.getAttribute(`data-${attr}`);
@@ -73,50 +74,63 @@
     }
 
     function getConfiguration(e) {
-        const sharerKey = getValue(e, 'share-to').toLowerCase();
-        const sharerConfigFn = SharerConfigs[sharerKey];
-        return sharerConfigFn(e);
+        const sharerKeyString = getValue(e, 'share-to').toLowerCase();
+        const sharerKey = Object.values(SharerKey).includes(sharerKeyString) ? sharerKeyString : undefined;
+        const sharer = getSharerConfig(e, sharerKey);
+        return sharer;
     }
-    function createSharerConfig(e, shareUrl, params) {
-        return new SharerConfig(shareUrl, params, parseInt(e.getAttribute('data-width') || '600'), parseInt(e.getAttribute('data-height') || '480'), e.getAttribute('data-link') === 'true', e.getAttribute('data-blank') === 'true');
+    function createSharerConfig(key, e, shareUrl, params) {
+        return new SharerConfig(key, shareUrl, params, parseInt(e.getAttribute('data-width') || '600'), parseInt(e.getAttribute('data-height') || '480'), e.getAttribute('data-link') === 'true', e.getAttribute('data-blank') === 'true');
     }
-    const SharerConfigs = {
-        [SharerKey.Facebook]: (e) => createSharerConfig(e, 'https://www.facebook.com/sharer/sharer.php', {
-            u: getValue(e, 'url'),
-            hashtag: getValue(e, 'hashtag'),
-            quote: getValue(e, 'text'),
-        }),
-        [SharerKey.LinkedIn]: (e) => createSharerConfig(e, 'https://www.linkedin.com/shareArticle', {
-            url: getValue(e, 'url'),
-        }),
-        [SharerKey.X]: (e) => createSharerConfig(e, 'https://x.com/intent/tweet', {
-            text: getValue(e, 'text'),
-            url: getValue(e, 'url'),
-            hashtags: getValue(e, 'hashtags'),
-            via: getValue(e, 'via'),
-            related: getValue(e, 'related'),
-            in_reply_to: getValue(e, 'in_reply_to'),
-        }),
-        [SharerKey.Threads]: (e) => createSharerConfig(e, 'https://threads.net/intent/post', {
-            text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
-        }),
-        [SharerKey.Email]: (e) => createSharerConfig(e, 'mailto:' + getValue(e, 'to'), {
-            subject: getValue(e, 'title'),
-            body: getValue(e, 'text') + '\n' + getValue(e, 'url'),
-        }),
-        [SharerKey.WhatsApp]: (e) => createSharerConfig(e, getValue(e, 'web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/', {
-            phone: getValue(e, 'to'),
-            text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
-        }),
-        [SharerKey.Telegram]: (e) => createSharerConfig(e, 'https://t.me/share', {
-            text: getValue(e, 'text'),
-            url: getValue(e, 'url'),
-        }),
-        [SharerKey.Reddit]: (e) => createSharerConfig(e, 'https://www.reddit.com/submit', {
-            url: getValue(e, 'url'),
-            title: getValue(e, 'text'),
-        }),
-    };
+    function getSharerConfig(e, key) {
+        switch (key) {
+            case SharerKey.Facebook:
+                return createSharerConfig(key, e, 'https://www.facebook.com/sharer/sharer.php', {
+                    u: getValue(e, 'url'),
+                    hashtag: getValue(e, 'hashtag'),
+                    quote: getValue(e, 'text'),
+                });
+            case SharerKey.LinkedIn:
+                return createSharerConfig(key, e, 'https://www.linkedin.com/shareArticle', {
+                    url: getValue(e, 'url'),
+                });
+            case SharerKey.X:
+                return createSharerConfig(key, e, 'https://x.com/intent/tweet', {
+                    text: getValue(e, 'text'),
+                    url: getValue(e, 'url'),
+                    hashtags: getValue(e, 'hashtags'),
+                    via: getValue(e, 'via'),
+                    related: getValue(e, 'related'),
+                    in_reply_to: getValue(e, 'in_reply_to'),
+                });
+            case SharerKey.Threads:
+                return createSharerConfig(key, e, 'https://threads.net/intent/post', {
+                    text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+                });
+            case SharerKey.Email:
+                return createSharerConfig(key, e, 'mailto:' + getValue(e, 'to'), {
+                    subject: getValue(e, 'title'),
+                    body: getValue(e, 'text') + '\n' + getValue(e, 'url'),
+                });
+            case SharerKey.WhatsApp:
+                return createSharerConfig(key, e, getValue(e, 'web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/', {
+                    phone: getValue(e, 'to'),
+                    text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+                });
+            case SharerKey.Telegram:
+                return createSharerConfig(key, e, 'https://t.me/share', {
+                    text: getValue(e, 'text'),
+                    url: getValue(e, 'url'),
+                });
+            case SharerKey.Reddit:
+                return createSharerConfig(key, e, 'https://www.reddit.com/submit', {
+                    url: getValue(e, 'url'),
+                    title: getValue(e, 'text'),
+                });
+            default:
+                throw new Error(`Unrecognized SharerKey: ${key}`);
+        }
+    }
 
     (function (window, document) {
         class socialShare {

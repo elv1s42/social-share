@@ -1,4 +1,4 @@
-enum SharerKey {
+export enum SharerKey {
   Facebook = 'fb',
   LinkedIn = 'li',
   X = 'x',
