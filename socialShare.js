@@ -158,12 +158,19 @@
                 const sharer = new Sharer(sharerConfig);
                 sharer.openShareWindow();
             }
-        }
-        if (document.readyState === 'complete' || document.readyState !== 'loading') {
-            socialShare.init();
-        }
-        else {
-            document.addEventListener('DOMContentLoaded', socialShare.init);
+            static share(elementOrSelector) {
+                const target = typeof elementOrSelector === 'string'
+                    ? document.querySelector(elementOrSelector)
+                    : elementOrSelector;
+                if (target) {
+                    const sharerConfig = getConfiguration(target);
+                    const sharer = new Sharer(sharerConfig);
+                    sharer.openShareWindow();
+                }
+                else {
+                    console.warn('Element not found for selector:', elementOrSelector);
+                }
+            }
         }
         window.socialShare = socialShare;
     })(window, document);
