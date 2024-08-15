@@ -3,6 +3,6 @@ export default {
 	output: {
 		file: 'socialShare.js',
 		format: 'iife',
-    name: "EasyCookies"
+    name: "SocialShare"
 	}
 };

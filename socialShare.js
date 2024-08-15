@@ -65,16 +65,28 @@
         SharerKey["Reddit"] = "re";
     })(SharerKey || (SharerKey = {}));
 
-    function getValue(elem, attr) {
+    function getAttrValueAsStr(elem, attr) {
         let val = elem.getAttribute(`data-${attr}`);
-        if (val && attr === 'hashtag' && !val.startsWith('#')) {
+        // handle hashtag by adding '#' if it doesn't start with it
+        if (attr === 'hashtag' && val && !val.startsWith('#')) {
             val = `#${val}`;
+        }
+        // fallback to current URL if the 'url' attribute is missing
+        if (attr === 'url' && !val) {
+            val = window.location.href;
+        }
+        // handle empty or missing values for 'title', 'subject', or 'text'
+        if ((attr === 'title' || attr === 'subject' || attr === 'text') && (!val || val.trim() === '')) {
+            const h1 = document.querySelector('h1');
+            const h2 = document.querySelector('h2');
+            const h3 = document.querySelector('h3');
+            val = (h1 === null || h1 === void 0 ? void 0 : h1.textContent) || (h2 === null || h2 === void 0 ? void 0 : h2.textContent) || (h3 === null || h3 === void 0 ? void 0 : h3.textContent) || '';
         }
         return val !== null ? val : '';
     }
 
     function getConfiguration(e) {
-        const sharerKeyString = getValue(e, 'share-to').toLowerCase();
+        const sharerKeyString = getAttrValueAsStr(e, 'share-to').toLowerCase();
         const sharerKey = Object.values(SharerKey).includes(sharerKeyString) ? sharerKeyString : undefined;
         const sharer = getSharerConfig(e, sharerKey);
         return sharer;
@@ -86,46 +98,46 @@
         switch (key) {
             case SharerKey.Facebook:
                 return createSharerConfig(key, e, 'https://www.facebook.com/sharer/sharer.php', {
-                    u: getValue(e, 'url'),
-                    hashtag: getValue(e, 'hashtag'),
-                    quote: getValue(e, 'text'),
+                    u: getAttrValueAsStr(e, 'url'),
+                    hashtag: getAttrValueAsStr(e, 'hashtag'),
+                    quote: getAttrValueAsStr(e, 'text'),
                 });
             case SharerKey.LinkedIn:
                 return createSharerConfig(key, e, 'https://www.linkedin.com/shareArticle', {
-                    url: getValue(e, 'url'),
+                    url: getAttrValueAsStr(e, 'url'),
                 });
             case SharerKey.X:
                 return createSharerConfig(key, e, 'https://x.com/intent/tweet', {
-                    text: getValue(e, 'text'),
-                    url: getValue(e, 'url'),
-                    hashtags: getValue(e, 'hashtags'),
-                    via: getValue(e, 'via'),
-                    related: getValue(e, 'related'),
-                    in_reply_to: getValue(e, 'in_reply_to'),
+                    text: getAttrValueAsStr(e, 'text'),
+                    url: getAttrValueAsStr(e, 'url'),
+                    hashtags: getAttrValueAsStr(e, 'hashtags'),
+                    via: getAttrValueAsStr(e, 'via'),
+                    related: getAttrValueAsStr(e, 'related'),
+                    in_reply_to: getAttrValueAsStr(e, 'in_reply_to'),
                 });
             case SharerKey.Threads:
                 return createSharerConfig(key, e, 'https://threads.net/intent/post', {
-                    text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+                    text: getAttrValueAsStr(e, 'text') + ' ' + getAttrValueAsStr(e, 'url'),
                 });
             case SharerKey.Email:
-                return createSharerConfig(key, e, 'mailto:' + getValue(e, 'to'), {
-                    subject: getValue(e, 'title'),
-                    body: getValue(e, 'text') + '\n' + getValue(e, 'url'),
+                return createSharerConfig(key, e, 'mailto:' + getAttrValueAsStr(e, 'to'), {
+                    subject: getAttrValueAsStr(e, 'title'),
+                    body: getAttrValueAsStr(e, 'text') + '\n' + getAttrValueAsStr(e, 'url'),
                 });
             case SharerKey.WhatsApp:
-                return createSharerConfig(key, e, getValue(e, 'web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/', {
-                    phone: getValue(e, 'to'),
-                    text: getValue(e, 'text') + ' ' + getValue(e, 'url'),
+                return createSharerConfig(key, e, getAttrValueAsStr(e, 'web') === 'true' ? 'https://web.whatsapp.com/send' : 'https://wa.me/', {
+                    phone: getAttrValueAsStr(e, 'to'),
+                    text: getAttrValueAsStr(e, 'text') + ' ' + getAttrValueAsStr(e, 'url'),
                 });
             case SharerKey.Telegram:
                 return createSharerConfig(key, e, 'https://t.me/share', {
-                    text: getValue(e, 'text'),
-                    url: getValue(e, 'url'),
+                    text: getAttrValueAsStr(e, 'text'),
+                    url: getAttrValueAsStr(e, 'url'),
                 });
             case SharerKey.Reddit:
                 return createSharerConfig(key, e, 'https://www.reddit.com/submit', {
-                    url: getValue(e, 'url'),
-                    title: getValue(e, 'text'),
+                    url: getAttrValueAsStr(e, 'url'),
+                    title: getAttrValueAsStr(e, 'text'),
                 });
             default:
                 throw new Error(`Unrecognized SharerKey: ${key}`);
